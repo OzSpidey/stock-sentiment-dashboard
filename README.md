@@ -8,6 +8,16 @@
 ![yfinance](https://img.shields.io/badge/Data-yfinance-22c55e?style=flat)
 ![SQLite](https://img.shields.io/badge/Storage-SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
 
+## Screenshots
+
+| Live Feed | Sentiment vs Price |
+|:---------:|:-----------------:|
+| ![Live Feed](screenshots/01_live_feed.png) | ![Sentiment vs Price](screenshots/02_sentiment_vs_price.png) |
+
+| Earnings Watch | Leaderboard |
+|:--------------:|:-----------:|
+| ![Earnings Watch](screenshots/03_earnings_watch.png) | ![Leaderboard](screenshots/04_leaderboard.png) |
+
 ---
 
 ## Features

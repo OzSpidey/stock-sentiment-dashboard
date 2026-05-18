@@ -20,7 +20,7 @@ scheduler.start(DEFAULT_TICKERS)
 # ── Plotly base layout ─────────────────────────────────────────────────────────
 PL = dict(
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="#0d0d20",
     font=dict(color=TEXT, family="Inter, system-ui, sans-serif"),
     margin=dict(l=50, r=30, t=44, b=40),
 )
@@ -249,7 +249,7 @@ def fig_earnings_sentiment(ticker: str):
     fig.update_layout(
         **PL, height=280,
         title=dict(text=f"{ticker} — Daily Sentiment (30 days)", x=0.5),
-        xaxis=dict(showgrid=False, tickangle=-45),
+        xaxis=dict(showgrid=False, tickangle=-45, type="category"),
         yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)",
                    zeroline=False),
     )
@@ -397,9 +397,10 @@ def render_tab(tab):
                     html.Label("Pre-Earnings Sentiment:", style={"color": MUTED, "fontSize": "0.78rem",
                                                                   "marginBottom": "6px", "display": "block",
                                                                   "textTransform": "uppercase"}),
-                    ticker_dd("earnings-ticker", "AAPL"),
+                    ticker_dd("earnings-ticker", "AMD"),
                 ], style={"marginBottom": "12px"}),
-                dcc.Graph(id="earnings-sentiment-chart", config={"displayModeBar": False}),
+                dcc.Graph(id="earnings-sentiment-chart", config={"displayModeBar": False},
+                          figure=go.Figure(layout={**PL, "height": 280})),
             ]),
         ])
 
@@ -506,46 +507,46 @@ def update_chart(ticker, days, _):
     return fig_sentiment_price(ticker or "AAPL", days or 30)
 
 
-# Earnings callbacks
+# Earnings — sentiment chart (fast: DB only)
 @app.callback(
-    [Output("earnings-table",          "children"),
-     Output("earnings-sentiment-chart","figure")],
+    Output("earnings-sentiment-chart", "figure"),
     [Input("earnings-ticker", "value"),
      Input("interval",        "n_intervals")],
 )
-def update_earnings(ticker, _):
-    ticker = ticker or "AAPL"
+def update_earnings_chart(ticker, _):
+    return fig_earnings_sentiment(ticker or "AMD")
 
-    # Earnings table
+
+# Earnings — calendar table (slow: 15 network calls, runs independently)
+@app.callback(
+    Output("earnings-table", "children"),
+    Input("interval", "n_intervals"),
+)
+def update_earnings_table(_):
     cal = pricer.get_earnings_calendar(DEFAULT_TICKERS)
-    if cal:
-        rows = []
-        for r in cal[:15]:
-            d   = r["days_until"]
-            col = GREEN if d <= 7 else (YELLOW if d <= 30 else MUTED)
-            rows.append(html.Tr([
-                html.Td(r["ticker"], style={"fontWeight": "700", "color": ACCENT}),
-                html.Td(TICKER_NAMES.get(r["ticker"], ""), style={"color": MUTED}),
-                html.Td(r["earnings_date"]),
-                html.Td(
-                    html.Span(f"In {d} days" if d > 0 else "Today!",
-                              style={"color": col, "fontWeight": "600"}),
-                ),
-            ], style={"borderBottom": f"1px solid {BORDER}"}))
-        e_table = html.Table(
-            [html.Thead(html.Tr([
-                html.Th(h, style={"color": MUTED, "fontWeight": "600",
-                                  "fontSize": "0.73rem", "textTransform": "uppercase",
-                                  "padding": "0 20px 10px 0"})
-                for h in ["Ticker", "Company", "Date", "Countdown"]
-            ]))] + [html.Tbody(rows)],
-            style={"width": "100%", "borderCollapse": "collapse"},
-        )
-    else:
-        e_table = html.P("No upcoming earnings found for tracked tickers.",
-                         style={"color": MUTED})
-
-    return e_table, fig_earnings_sentiment(ticker)
+    if not cal:
+        return html.P("No upcoming earnings found for tracked tickers.",
+                      style={"color": MUTED})
+    rows = []
+    for r in cal[:15]:
+        d   = r["days_until"]
+        col = GREEN if d <= 7 else (YELLOW if d <= 30 else MUTED)
+        rows.append(html.Tr([
+            html.Td(r["ticker"], style={"fontWeight": "700", "color": ACCENT}),
+            html.Td(TICKER_NAMES.get(r["ticker"], ""), style={"color": MUTED}),
+            html.Td(r["earnings_date"]),
+            html.Td(html.Span(f"In {d} days" if d > 0 else "Today!",
+                              style={"color": col, "fontWeight": "600"})),
+        ], style={"borderBottom": f"1px solid {BORDER}"}))
+    return html.Table(
+        [html.Thead(html.Tr([
+            html.Th(h, style={"color": MUTED, "fontWeight": "600",
+                              "fontSize": "0.73rem", "textTransform": "uppercase",
+                              "padding": "0 20px 10px 0"})
+            for h in ["Ticker", "Company", "Date", "Countdown"]
+        ]))] + [html.Tbody(rows)],
+        style={"width": "100%", "borderCollapse": "collapse"},
+    )
 
 
 # Leaderboard callbacks
